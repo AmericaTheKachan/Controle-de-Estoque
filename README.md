@@ -1,2 +1,11 @@
-# PI_Cronograma
-Criação de um cronograma em project e versiona-lo no github, para ter um controle das atualização a serem feitas no cronograma.
+# Sistema de Controle de Estoque
+Nesse projeto será criado um sistema de controle de estoque que contenha as seguintes funções:
+- Cadastro de Produtos;
+- Remoção de Produtos;
+- Listagem de Produtos;
+- Cálculo de Preço de Venda;
+- Classificação de Lucro;
+- Banco de Dados.
+
+Linguagens usadas durante o desenvolvimento:
+Python e SQL
