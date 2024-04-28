@@ -1,7 +1,9 @@
-import getpass
+import os
 import oracledb
+import getpass
+
 # Criar variável para chamar a senha
-pw = getpass.getpass("Enter password: ")
+pw = getpass.getpass("Insira a senha: ")
 # Criar conexão
 try:
     conexao = oracledb.connect(
@@ -13,31 +15,62 @@ except Exception as erro:
     print ('Erro em conexão', erro)
 else:
     print ("Conectado", conexao.version)
-
 # Criar Cursor
-
 cursor = conexao.cursor()
 
+# Criar Tabela
+cursor.execute ("""
+CREATE TABLE estoque (
+    codigo NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nome_produto varchar2(60) NOT NULL,
+    descricao_produto varchar2(100) NOT NULL,
+    custo_produto number(9,2) NOT NULL,
+    custo_fixo number(9,2) NOT NULL,
+    comissa_venda number(9,2) NOT NULL,
+    imposto_venda number(9,2) NOT NULL,
+    rentabilidade number(9,2) NOT NULL
+)""")
+conexao.commit()                # Salvar mudanças
 
+def limparTerminal():           # Limpar o terminal
+    return os.system('cls' if os.name == 'nt' else 'clear')
 
-resposta = str(input("Deseja cadastrar um produto?\n"))
-while resposta == "Sim" or resposta == "sim":
+def criarBarra():               # Criar barras no terminal
+    return print('-' * 31)
 
-    nome_do_produto=str(input('Digite o nome do produto: '))
-    #codigo_do_produto=input('Digite o código do produto(8 dígitos): ')
-    descricao_do_produto=str(input('Digite uma descrição do produto: '))
-    valor_custo_do_produto=float(input('Digite o custo do produto: '))
-    percent_custo_fixo=float(input('Digite a porcentagem do custo fixo: '))
-    percent_comissao_de_vendas=float(input('Digite a porcentagem da comissão de vendas: '))
-    percent_impostos=float(input('digite a porcentagem dos impostos: '))
-    margem_de_lucro=float(input('Digite a margem de lucro em porcentagem: '))
+def menu():                     # Menu de seleção principal
+    print('======= <<< ''\033[1;96m''Estoque''\033[0;0m'' >>> =======')
+    print('| [''\033[1;36m' '1' '\033[0;0m''] - ''\033[1m' 'Cadastrar Produto' '\033[0;0m''     |')
+    print('| [''\033[1;31m' '2' '\033[0;0m''] - ''\033[1;31m' 'Remover Produto' '\033[0;0m''       |')
+    print('| [''\033[1;31m' '3' '\033[0;0m''] - ''\033[1;31m' 'Listar Produtos' '\033[0;0m''       |')
+    print('| [''\033[1;36m' '0' '\033[0;0m''] - ''\033[1m' 'Encerrar' '\033[0;0m''              |')
+    print('-------------------------------')
+    x = int(input('\033[1;36m''Insira a opção: ''\033[0;0m'))
+    print('-------------------------------')
+    return x
 
-    if (percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+margem_de_lucro) == 100:
+def cadastrarProduto():         # Cadastrar produto
+    limparTerminal()
+
+    # Recebe as informações do produto
+    print('======= < ''\033[1;96m''Cadastrar Produto''\033[0;0m'' > =======')
+    nome_do_produto = str(input('Nome do produto: '))
+    descricao_do_produto = str(input('Descrição do produto: '))
+    valor_custo_do_produto = float(input('Custo do produto (R$): '))
+    percent_custo_fixo = float(input('Custo fixo (%): '))
+    percent_comissao_de_vendas = float(input('Comissão de vendas (%): '))
+    percent_impostos = float(input('Impostos (%): '))
+    percent_rentabilidade = float(input('Rentabilidade (%): '))
+
+    # Calculo do preço de venda do produto
+    if (percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+percent_rentabilidade) == 100:
         valor_preco_de_venda=valor_custo_do_produto/0.0001
-    elif (percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+margem_de_lucro) > 100:
-        valor_preco_de_venda=valor_custo_do_produto/(((percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+margem_de_lucro)/100)-1)
+    elif (percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+percent_rentabilidade) > 100:
+        valor_preco_de_venda=valor_custo_do_produto/(((percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+percent_rentabilidade)/100)-1)
     else:
-        valor_preco_de_venda=valor_custo_do_produto/(1-((percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+margem_de_lucro)/100))
+        valor_preco_de_venda=valor_custo_do_produto/(1-((percent_custo_fixo+percent_comissao_de_vendas+percent_impostos+percent_rentabilidade)/100))
+
+    # Define o percentual
     percent_preco_de_venda=100
 
     percent_custo_do_produto=(valor_custo_do_produto*100)/valor_preco_de_venda
@@ -55,89 +88,120 @@ while resposta == "Sim" or resposta == "sim":
     percent_outros_custos=percent_custo_fixo+percent_comissao_de_vendas+percent_impostos
 
     valor_rentabilidade=valor_receita_bruta-valor_outros_custos
-    #percent_rentabilidade=margem_de_lucro
 
+    limparTerminal()
 
+    if percent_rentabilidade>20:
+        classificao_lucro = '\033[1;92m''Lucro Alto''\033[0;0m'
+    elif percent_rentabilidade>10 and percent_rentabilidade<=20:
+        classificao_lucro = '\033[1;92m''Lucro Médio''\033[0;0m'
+    elif percent_rentabilidade>0 and percent_rentabilidade<=10:
+        classificao_lucro = '\033[1;92m''Lucro Baixo''\033[0;0m'
+    elif percent_rentabilidade==0:
+        classificao_lucro = '\033[1;93m''Lucro em Equilíbrio''\033[0;0m'
+    elif percent_rentabilidade<0:
+        classificao_lucro = '\033[1;91m''Prejuízo''\033[0;0m'
+    
+    tabela_valores = [
+        ['Descrição',            'Valores',                           'Porcentagens'],
+        ['Preço de Venda',     (f'R${valor_preco_de_venda:.2f}'),     (f'{percent_preco_de_venda:.2f}%')],
+        ['Custo de Aquisição', (f'R${valor_custo_do_produto:.2f}'),   (f'{percent_custo_do_produto:.2f}%')],
+        ['Receita Bruta',      (f'R${valor_receita_bruta:.2f}'),      (f'{percent_receita_bruta:.2f}%')],
+        ['Custo Fixo',         (f'R${valor_custo_fixo:.2f}'),         (f'{percent_custo_fixo:.2f}%')],
+        ['Comissão de Vendas', (f'R${valor_comissao_de_vendas:.2f}'), (f'{percent_comissao_de_vendas:.2f}%')],
+        ['Impostos',           (f'R${valor_impostos:.2f}'),           (f'{percent_impostos:.2f}%')],
+        ['Outros Custos',      (f'R${valor_outros_custos:.2f}'),      (f'{percent_outros_custos:.2f}%')],
+        ['Rentabilidade',      (f'R${valor_rentabilidade:.2f}'),      (f'{percent_rentabilidade:.2f}%')]
+    ]
 
-    if margem_de_lucro>20:
-        print('Lucro alto')
-    elif margem_de_lucro>10 and margem_de_lucro<=20:
-        print('Lucro médio')
-    elif margem_de_lucro>0 and margem_de_lucro<=10:
-        print('Lucro baixo')
-    elif margem_de_lucro==0:
-        print('Lucro em Equilibrio')
-    elif margem_de_lucro<0:
-        print('prejuizo')
+    print(f'Produto: {nome_do_produto}\nDescrição: {descricao_do_produto}\nClassificação: {classificao_lucro}\n')
+
+    for item in tabela_valores:
+        print('|',
+              item[0],' '*(18-len(item[0])) + '|',
+              item[1],' '*(12-len(item[1])) + '|',
+              item[2],' '*(12-len(item[2])) + '|')
         
-    print(f'    Preço de Venda \t{valor_preco_de_venda :.2f}   {percent_preco_de_venda :.1f}%\n\
-        Custo de Aquisição \t{valor_custo_do_produto :.2f}     {percent_custo_do_produto :.1f}%\n\
-        Receita Bruta \t{valor_receita_bruta :.2f}   {percent_receita_bruta :.1f}%\n\
-        Custo Fixo \t        {valor_custo_fixo :.2f}  {percent_custo_fixo :.1f}%\n\
-        Comissão de Vendas \t{valor_comissao_de_vendas :.2f}    {percent_comissao_de_vendas :.1f}%\n\
-        Impostos \t        {valor_impostos :.2f}    {percent_impostos :.1f}%\n\
-        Outros Custos \t{valor_outros_custos :.2f}   {percent_outros_custos :.1f}%\n\
-        Rentabilidade \t{valor_rentabilidade :.2f}   {margem_de_lucro :.1f}%\n')
-    resposta = str(input("Deseja cadastrar mais um produto?\n"))
-print(f'Encerramento do cadastramento de produtos')
+    while True:
+        confirmarCadastro = int(input('\nConfirmar Cadastro:\n1 - Confirmar\n2 - Refazer\n0 - Cancelar\nOpção: '))
+        if confirmarCadastro == 1:
+            sql_insert = """
+            INSERT INTO estoque (
+                nome_produto, 
+                descricao_produto, 
+                custo_produto, 
+                custo_fixo, 
+                comissa_venda, 
+                imposto_venda, 
+                rentabilidade
+                ) VALUES (:1, :2, :3, :4, :5, :6, :7)
+            """
+
+            dados = (
+                nome_do_produto,
+                descricao_do_produto,
+                valor_custo_do_produto,
+                percent_custo_fixo,
+                percent_comissao_de_vendas,
+                percent_impostos,
+                percent_rentabilidade
+            )
+
+            cursor.execute(sql_insert, dados)
+            conexao.commit()
+            limparTerminal()
+            criarBarra()
+            print('\033[1;92m''      Produto Cadastrado!''\033[0;0m')
+            criarBarra()
+            break
+        elif confirmarCadastro == 2:
+            cadastrarProduto()
+            break
+        elif confirmarCadastro == 0:
+            limparTerminal()
+            criarBarra()
+            print('\033[1;91m''      Cadastro Cancelado!''\033[0;0m')
+            criarBarra()
+            break
+        else:
+            print('Opção inválida!')
+
+def removerProduto():           # Remover produto
+    print('Opção selecionada = 2 (remover produto)')
+
+def listarProdutos():           # Listar produtos
+    print('Opção selecionada = 3 (listar produtos)')
 
 
+limparTerminal()                # Código principal
+while True:
+    opcao = menu()
 
+    if opcao == 1:
+        cadastrarProduto()
+    elif opcao == 2:
+        removerProduto()
+        limparTerminal()
+    elif opcao == 3:
+        listarProdutos()
+        limparTerminal()
+    elif opcao == 0:
+        limparTerminal()
+        criarBarra()
+        print('\033[1;96m''      Programa finalizado!''\033[0;0m')
+        criarBarra()
+        break
+    else:
+        limparTerminal()
+        criarBarra()
+        print('\033[1;31m''    Insira uma opção válida!''\033[0;0m')
+        criarBarra()
 
+# ------------------------------
+# Mostrar produtos
+# cursor.execute ("select * from estoque")
+# resultado = cursor.fetchall()
+# print(resultado)
 
-# Cria a tabela test
-'''
-cursor.execute ("""
-CREATE TABLE estoque (
- codigo NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
- nome_produto varchar2(60) NOT NULL,
- descricao_produto varchar2(60) NOT NULL,
- cp number(10) NOT NULL,
- cf number(10) NOT NULL,
- cv number(10) NOT NULL,
- iv number(10) NOT NULL,
- ml number(10) NOT NULL
-)""")
-'''
-# Inserir Dados
-
-sql_insert = """
-INSERT INTO estoque (
-    nome_produto, descricao_produto, cp, cf, cv, iv, ml
-) VALUES (:1, :2, :3, :4, :5, :6, :7)
-"""
-
-dados = (
-    nome_do_produto,
-    descricao_do_produto,
-    valor_custo_do_produto,
-    percent_custo_fixo,
-    percent_comissao_de_vendas,
-    percent_impostos,
-    margem_de_lucro
-)
-
-cursor.execute(sql_insert, dados)
-
-
-#Limpar as linhas da tabela
-#cursor.execute ("truncate table estoque")
-
-#Excluir a tabela
-#cursor.execute ("drop table estoque")
-
-#Deletar uma linha 
-#cursor.execute("delete from estoque where codigo=3")
-
-# Exibir conteúdos
-conexao.commit()
-cursor.execute ("select * from estoque")
-
-resultado = cursor.fetchall()
-# Imprimir resultados
-print(resultado)
-
-
-
-
-
+# Deletar uma linha 
+# cursor.execute("delete from estoque where codigo=n")
